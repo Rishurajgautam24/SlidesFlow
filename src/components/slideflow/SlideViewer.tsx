@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import type { PDFPageProxy } from 'pdfjs-dist';
+import type { PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import { usePresentation, Annotation, PathPoint } from './PresentationContext';
 import { useWindowSize } from '@/hooks/useWindowSize';
 import { Loader2 } from 'lucide-react';
@@ -18,6 +18,7 @@ export default function SlideViewer() {
     const pdfCanvasRef = useRef<HTMLCanvasElement>(null);
     const annotationCanvasRef = useRef<HTMLCanvasElement>(null);
     const laserRef = useRef<HTMLDivElement>(null);
+    const renderTaskRef = useRef<RenderTask | null>(null);
     
     const [isDrawing, setIsDrawing] = useState(false);
     
@@ -74,6 +75,10 @@ export default function SlideViewer() {
     useEffect(() => {
         if (isLoading || !page || !containerRef.current || !pdfCanvasRef.current || !annotationCanvasRef.current) return;
 
+        if (renderTaskRef.current) {
+            renderTaskRef.current.cancel();
+        }
+
         const container = containerRef.current;
         const pdfCanvas = pdfCanvasRef.current;
         const annotationCanvas = annotationCanvasRef.current;
@@ -98,7 +103,16 @@ export default function SlideViewer() {
 
         const pdfCtx = pdfCanvas.getContext('2d');
         if (pdfCtx) {
-            page.render({ canvasContext: pdfCtx, viewport: scaledViewport });
+            const renderContext = {
+              canvasContext: pdfCtx,
+              viewport: scaledViewport,
+            };
+            renderTaskRef.current = page.render(renderContext);
+            renderTaskRef.current.promise.catch(err => {
+              if (err.name !== 'RenderingCancelledException') {
+                console.error('Render error:', err);
+              }
+            });
         }
 
         drawAnnotations();

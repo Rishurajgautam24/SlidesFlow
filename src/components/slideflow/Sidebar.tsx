@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, memo } from 'react';
-import type { PDFPageProxy } from 'pdfjs-dist';
+import type { PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import { usePresentation } from './PresentationContext';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,6 +15,8 @@ const MemoizedThumbnail = memo(function Thumbnail({ pageNumber, getPage }: { pag
 
   useEffect(() => {
     let isMounted = true;
+    let renderTask: RenderTask | undefined;
+
     const renderThumbnail = async () => {
       try {
         const page = await getPage(pageNumber);
@@ -29,11 +31,16 @@ const MemoizedThumbnail = memo(function Thumbnail({ pageNumber, getPage }: { pag
 
         const context = canvas.getContext('2d');
         if (context) {
-          await page.render({ canvasContext: context, viewport }).promise;
-          setIsLoading(false);
+          renderTask = page.render({ canvasContext: context, viewport });
+          await renderTask.promise;
+          if (isMounted) {
+            setIsLoading(false);
+          }
         }
       } catch (error) {
-        console.error(`Failed to render thumbnail for page ${pageNumber}`, error);
+        if ((error as Error).name !== 'RenderingCancelledException') {
+            console.error(`Failed to render thumbnail for page ${pageNumber}`, error);
+        }
       }
     };
     
@@ -41,6 +48,9 @@ const MemoizedThumbnail = memo(function Thumbnail({ pageNumber, getPage }: { pag
 
     return () => {
       isMounted = false;
+      if (renderTask) {
+        renderTask.cancel();
+      }
     };
   }, [getPage, pageNumber]);
 
