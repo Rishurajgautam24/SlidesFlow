@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 export default function SlideViewer() {
     const { 
         pdf, currentPage, activeTool, goToNextPage, goToPrevPage, annotations, 
-        addAnnotation, updateLastAnnotation, penColor, penWidth 
+        addAnnotation, updateLastAnnotation, penColor, penWidth, eraseStroke
     } = usePresentation();
     const [page, setPage] = useState<PDFPageProxy | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +28,9 @@ export default function SlideViewer() {
         const loadPage = async () => {
             if (!pdf) return;
             setIsLoading(true);
+            if (renderTaskRef.current) {
+                renderTaskRef.current.cancel();
+            }
             try {
                 const loadedPage = await pdf.getPage(currentPage);
                 setPage(loadedPage);
@@ -45,6 +48,7 @@ export default function SlideViewer() {
         const ctx = canvas?.getContext('2d');
         if (!canvas || !ctx) return;
         
+        const dpr = window.devicePixelRatio || 1;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         const pageAnnotations = annotations[currentPage] || [];
@@ -58,12 +62,10 @@ export default function SlideViewer() {
                 ctx.globalCompositeOperation = anno.isHighlighter ? 'multiply' : 'source-over';
 
                 anno.points.forEach((p, i) => {
-                    const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
-                    const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
                     if (i === 0) {
-                        ctx.moveTo(p.x * canvasWidth, p.y * canvasHeight);
+                        ctx.moveTo(p.x * (canvas.width / dpr), p.y * (canvas.height / dpr));
                     } else {
-                        ctx.lineTo(p.x * canvasWidth, p.y * canvasHeight);
+                        ctx.lineTo(p.x * (canvas.width / dpr), p.y * (canvas.height / dpr));
                     }
                 });
                 ctx.stroke();
@@ -120,6 +122,10 @@ export default function SlideViewer() {
     }, [page, isLoading, windowSize, drawAnnotations]);
 
     useEffect(() => {
+        drawAnnotations();
+    }, [annotations, drawAnnotations]);
+
+    useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.target as HTMLElement).tagName === 'INPUT') return;
             if (e.key === 'ArrowRight' || e.key === ' ') {
@@ -143,16 +149,17 @@ export default function SlideViewer() {
     };
 
     const startDrawing = (e: React.MouseEvent) => {
-        if (activeTool !== 'pen' && activeTool !== 'highlighter' && activeTool !== 'eraser') return;
+        if (activeTool !== 'pen' && activeTool !== 'highlighter') return;
         const coords = getCoords(e);
         if (!coords) return;
         
         setIsDrawing(true);
         
         const newAnnotation: Annotation = {
+            id: new Date().toISOString(),
             type: 'path',
-            color: activeTool === 'highlighter' ? 'rgba(250, 204, 21, 0.5)' : (activeTool === 'eraser' ? 'rgba(255, 255, 255, 1)' : penColor),
-            width: activeTool === 'highlighter' ? 15 : (activeTool === 'eraser' ? 20 : penWidth),
+            color: activeTool === 'highlighter' ? 'rgba(250, 204, 21, 0.5)' : penColor,
+            width: activeTool === 'highlighter' ? 15 : penWidth,
             points: [coords],
             isHighlighter: activeTool === 'highlighter',
         };
@@ -165,12 +172,19 @@ export default function SlideViewer() {
         if (!coords) return;
         
         updateLastAnnotation(currentPage, coords);
-        drawAnnotations();
     };
 
     const stopDrawing = () => {
         if (isDrawing) {
           setIsDrawing(false);
+        }
+    };
+
+    const handleMouseClick = (e: React.MouseEvent) => {
+        if (activeTool === 'eraser') {
+            const coords = getCoords(e);
+            if (!coords) return;
+            eraseStroke(currentPage, coords);
         }
     };
 
@@ -196,10 +210,11 @@ export default function SlideViewer() {
                      onMouseDown={startDrawing}
                      onMouseUp={stopDrawing}
                      onMouseLeave={stopDrawing}
-                     style={{ cursor: activeTool === 'cursor' || activeTool === 'laser' ? 'default' : 'crosshair' }}
+                     onClick={handleMouseClick}
+                     style={{ cursor: activeTool === 'cursor' || activeTool === 'laser' ? 'default' : (activeTool === 'eraser' ? 'cell' : 'crosshair') }}
                 >
                     <canvas ref={pdfCanvasRef} />
-                    <canvas ref={annotationCanvasRef} className="absolute top-0 left-0 pointer-events-none" />
+                    <canvas ref={annotationCanvasRef} className="absolute top-0 left-0" />
                 </div>
             )}
             <div 

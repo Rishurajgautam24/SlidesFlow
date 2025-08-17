@@ -5,6 +5,12 @@ import { usePresentation, Tool } from './PresentationContext';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -23,14 +29,17 @@ const tools: { name: Tool, icon: React.ElementType, label: string }[] = [
     { name: 'laser', icon: MousePointer2, label: 'Laser Pointer' },
     { name: 'pen', icon: Pen, label: 'Pen Tool' },
     { name: 'highlighter', icon: Highlighter, label: 'Highlighter Tool' },
-    { name: 'eraser', icon: Eraser, label: 'Eraser Tool (draws over)' },
 ];
 
 const colors = ['#EF4444', '#F97316', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#000000'];
 const widths = [2, 3, 5, 8];
 
 export default function Toolbar() {
-    const { activeTool, setActiveTool, penColor, setPenColor, penWidth, setPenWidth, undoAnnotation, clearAnnotations, currentPage } = usePresentation();
+    const { activeTool, setActiveTool, penColor, setPenColor, penWidth, setPenWidth, undoAnnotation, clearAnnotations, currentPage, eraseStroke } = usePresentation();
+
+    const handleEraseStroke = () => {
+        setActiveTool('eraser');
+    };
 
     return (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
@@ -47,15 +56,55 @@ export default function Toolbar() {
                         <tool.icon className="h-5 w-5" />
                     </Button>
                 ))}
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant={activeTool === 'eraser' ? 'secondary' : 'ghost'}
+                            size="icon"
+                            aria-label="Eraser Tool"
+                            title="Eraser Tool"
+                            onClick={() => setActiveTool('eraser')}
+                        >
+                            <Eraser className="h-5 w-5" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem onClick={handleEraseStroke}>
+                            Erase Stroke
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-destructive">
+                                    Clear Slide
+                                </div>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action will permanently delete all annotations from the current slide. This cannot be undone.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => clearAnnotations(currentPage)}>
+                                    Clear Annotations
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </DropdownMenuContent>
+                </DropdownMenu>
                 
                 <Separator orientation="vertical" className="h-6 mx-1" />
 
-                {(activeTool === 'pen' || activeTool === 'highlighter' || activeTool === 'eraser') && (
+                {(activeTool === 'pen' || activeTool === 'highlighter') && (
                   <>
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button variant="ghost" size="icon" aria-label="Select color" title="Select color">
-                                <div className="w-5 h-5 rounded-full border-2" style={{ backgroundColor: activeTool === 'eraser' ? 'white' : penColor }} />
+                                <div className="w-5 h-5 rounded-full border-2" style={{ backgroundColor: penColor }} />
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-2">

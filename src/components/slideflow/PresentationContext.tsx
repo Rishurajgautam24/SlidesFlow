@@ -10,6 +10,7 @@ export interface PathPoint {
   y: number;
 }
 export interface Annotation {
+  id: string;
   type: 'path';
   points: PathPoint[];
   color: string;
@@ -38,6 +39,7 @@ interface PresentationState {
   updateLastAnnotation: (page: number, point: PathPoint) => void;
   undoAnnotation: (page: number) => void;
   clearAnnotations: (page: number) => void;
+  eraseStroke: (page: number, point: PathPoint) => void;
 }
 
 const PresentationContext = createContext<PresentationState | undefined>(undefined);
@@ -112,6 +114,39 @@ export const PresentationProvider = ({ pdf, children }: { pdf: PDFDocumentProxy,
     }));
   }, []);
 
+  const eraseStroke = useCallback((page: number, point: PathPoint) => {
+    setAnnotations(prev => {
+      const pageAnnotations = prev[page] || [];
+      if (pageAnnotations.length === 0) return prev;
+
+      let annotationToDelete: Annotation | null = null;
+      let minDistance = Infinity;
+
+      for (const annotation of pageAnnotations) {
+        if (annotation.type !== 'path') continue;
+
+        for (const p of annotation.points) {
+          const distance = Math.sqrt(Math.pow(p.x - point.x, 2) + Math.pow(p.y - point.y, 2));
+          if (distance < minDistance) {
+            minDistance = distance;
+            annotationToDelete = annotation;
+          }
+        }
+      }
+
+      // 0.05 is a magic number for tolerance, approx 5% of canvas dimension
+      if (annotationToDelete && minDistance < 0.05) {
+        return {
+          ...prev,
+          [page]: pageAnnotations.filter(a => a.id !== annotationToDelete!.id),
+        };
+      }
+
+      return prev;
+    });
+  }, []);
+
+
   const value = {
     pdf,
     numPages,
@@ -130,6 +165,7 @@ export const PresentationProvider = ({ pdf, children }: { pdf: PDFDocumentProxy,
     updateLastAnnotation,
     undoAnnotation,
     clearAnnotations,
+    eraseStroke,
   };
 
   return <PresentationContext.Provider value={value}>{children}</PresentationContext.Provider>;
