@@ -4,7 +4,6 @@ import Header from '@/components/slideflow/Header';
 import Sidebar from '@/components/slideflow/Sidebar';
 import SlideViewer from '@/components/slideflow/SlideViewer';
 import Controls from '@/components/slideflow/Controls';
-import Toolbar from '@/components/slideflow/Toolbar';
 
 interface PresentationViewProps {
   pdf: PDFDocumentProxy;
@@ -20,7 +19,6 @@ function PresentationLayout({ onExit }: { onExit: () => void }) {
       <div className="flex flex-1 overflow-hidden">
         {!isFullscreen && <Sidebar />}
         <main className="flex-1 flex flex-col relative overflow-hidden bg-background">
-          {!isFullscreen && <Toolbar />}
           <SlideViewer />
           <Controls />
         </main>

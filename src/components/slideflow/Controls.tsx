@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { usePresentation } from './PresentationContext';
 import { useState, useEffect } from 'react';
 import TimerClock from './TimerClock';
+import Toolbar from './Toolbar';
 
 export default function Controls() {
   const { currentPage, numPages, goToPrevPage, goToNextPage, setCurrentPage, isFullscreen, toggleFullscreen } = usePresentation();
@@ -33,7 +34,8 @@ export default function Controls() {
   }
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-4">
+      <Toolbar />
       <div className="flex items-center gap-2 p-1 bg-background rounded-lg shadow-lg border">
         <TimerClock />
 
