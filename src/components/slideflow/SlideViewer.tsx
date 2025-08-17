@@ -6,6 +6,8 @@ import { usePresentation, Annotation, PathPoint, Tool, TextAnnotation, ShapeAnno
 import { useWindowSize } from '@/hooks/useWindowSize';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Button } from '../ui/button';
 
 export default function SlideViewer() {
     const { 
@@ -21,6 +23,7 @@ export default function SlideViewer() {
     const renderTaskRef = useRef<RenderTask | null>(null);
     
     const [isDrawing, setIsDrawing] = useState(false);
+    const [textInput, setTextInput] = useState<{point: PathPoint, value: string} | null>(null);
     
     const windowSize = useWindowSize();
 
@@ -260,21 +263,26 @@ export default function SlideViewer() {
         if (activeTool === 'eraser') {
             eraseStroke(currentPage, coords);
         } else if (activeTool === 'text') {
-            const text = prompt('Enter text:');
-            if (text) {
-                const newAnnotation: TextAnnotation = {
-                    id: new Date().toISOString(),
-                    type: 'text',
-                    text,
-                    point: coords,
-                    color: penColor,
-                    width: penWidth, // not used for text, but for consistency
-                    size: 0.05, // 5% of canvas height
-                };
-                addAnnotation(currentPage, newAnnotation);
-                setActiveTool('cursor');
-            }
+            setTextInput({ point: coords, value: '' });
         }
+    };
+    
+    const handleTextSubmit = (e?: React.FormEvent) => {
+        e?.preventDefault();
+        if (textInput && textInput.value.trim() !== '') {
+            const newAnnotation: TextAnnotation = {
+                id: new Date().toISOString(),
+                type: 'text',
+                text: textInput.value,
+                point: textInput.point,
+                color: penColor,
+                width: penWidth, // not used for text, but for consistency
+                size: 0.04, // 4% of canvas height
+            };
+            addAnnotation(currentPage, newAnnotation);
+        }
+        setTextInput(null);
+        setActiveTool('cursor');
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
@@ -292,13 +300,13 @@ export default function SlideViewer() {
 
     const getCursor = () => {
         if (isDrawingTool(activeTool) || activeTool === 'text') return 'crosshair';
-        if (activeTool === 'eraser') return 'cell';
+        if (activeTool === 'eraser') return 'cursor-eraser';
         if (activeTool === 'laser') return 'none';
         return 'default';
     }
 
     return (
-        <div ref={containerRef} className="flex-1 flex items-center justify-center p-4 overflow-hidden">
+        <div ref={containerRef} className="flex-1 flex items-center justify-center p-4 overflow-hidden relative">
             {isLoading ? (
                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
             ) : (
@@ -315,6 +323,29 @@ export default function SlideViewer() {
                         ref={annotationCanvasRef} 
                         className="absolute top-0 left-0"
                     />
+                     {textInput && annotationCanvasRef.current && (
+                        <form
+                            onSubmit={handleTextSubmit}
+                            style={{
+                                position: 'absolute',
+                                left: `${textInput.point.x * annotationCanvasRef.current.clientWidth}px`,
+                                top: `${textInput.point.y * annotationCanvasRef.current.clientHeight}px`,
+                            }}
+                        >
+                            <Input
+                                type="text"
+                                autoFocus
+                                value={textInput.value}
+                                onChange={(e) => setTextInput({ ...textInput, value: e.target.value })}
+                                onBlur={() => handleTextSubmit()}
+                                className="h-8 bg-background/80 backdrop-blur-sm"
+                                style={{
+                                    fontSize: `${0.04 * annotationCanvasRef.current.clientHeight}px`,
+                                    color: penColor,
+                                }}
+                            />
+                        </form>
+                    )}
                 </div>
             )}
             <div 
