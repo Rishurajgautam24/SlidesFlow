@@ -6,32 +6,13 @@ import { useState, useEffect } from 'react';
 import TimerClock from './TimerClock';
 
 export default function Controls() {
-  const { currentPage, numPages, goToPrevPage, goToNextPage, setCurrentPage } = usePresentation();
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const { currentPage, numPages, goToPrevPage, goToNextPage, setCurrentPage, isFullscreen, toggleFullscreen } = usePresentation();
   const [inputValue, setInputValue] = useState(currentPage.toString());
 
   useEffect(() => {
     setInputValue(currentPage.toString());
   }, [currentPage]);
   
-  useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handler);
-    return () => document.removeEventListener('fullscreenchange', handler);
-  }, []);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
-        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-      });
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-    }
-  };
-
   const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
   }

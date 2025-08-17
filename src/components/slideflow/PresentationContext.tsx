@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
 export type Tool = 'cursor' | 'pen' | 'highlighter' | 'eraser' | 'laser';
@@ -40,6 +40,9 @@ interface PresentationState {
   undoAnnotation: (page: number) => void;
   clearAnnotations: (page: number) => void;
   eraseStroke: (page: number, point: PathPoint) => void;
+
+  isFullscreen: boolean;
+  toggleFullscreen: () => void;
 }
 
 const PresentationContext = createContext<PresentationState | undefined>(undefined);
@@ -58,6 +61,25 @@ export const PresentationProvider = ({ pdf, children }: { pdf: PDFDocumentProxy,
   const [penColor, setPenColor] = useState('#EF4444'); // red-500
   const [penWidth, setPenWidth] = useState(3);
   const [annotations, setAnnotations] = useState<Record<number, Annotation[]>>({});
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   const numPages = pdf.numPages;
 
@@ -166,6 +188,8 @@ export const PresentationProvider = ({ pdf, children }: { pdf: PDFDocumentProxy,
     undoAnnotation,
     clearAnnotations,
     eraseStroke,
+    isFullscreen,
+    toggleFullscreen,
   };
 
   return <PresentationContext.Provider value={value}>{children}</PresentationContext.Provider>;
