@@ -88,28 +88,12 @@ export default function SlideViewer() {
                 ctx.lineJoin = 'round';
                 ctx.globalCompositeOperation = anno.isHighlighter ? 'multiply' : 'source-over';
 
-                if (anno.points.length < 2) {
-                    if (anno.points.length === 1) {
-                        const p = anno.points[0];
-                        const x = p.x * canvasWidth;
-                        const y = p.y * canvasHeight;
-                        ctx.fillStyle = anno.color;
-                        ctx.arc(x, y, anno.width / 2, 0, 2 * Math.PI);
-                        ctx.fill();
-                    }
-                } else {
+                if (anno.points.length > 0) {
                     ctx.moveTo(anno.points[0].x * canvasWidth, anno.points[0].y * canvasHeight);
-                    for (let i = 1; i < anno.points.length - 1; i++) {
-                        const p1 = anno.points[i];
-                        const p2 = anno.points[i+1];
-                        const midPoint = {
-                            x: (p1.x + p2.x) / 2,
-                            y: (p1.y + p2.y) / 2
-                        };
-                        ctx.quadraticCurveTo(p1.x * canvasWidth, p1.y * canvasHeight, midPoint.x * canvasWidth, midPoint.y * canvasHeight);
+                    for (let i = 1; i < anno.points.length; i++) {
+                        const p = anno.points[i];
+                        ctx.lineTo(p.x * canvasWidth, p.y * canvasHeight);
                     }
-                    const lastPoint = anno.points[anno.points.length - 1];
-                    ctx.lineTo(lastPoint.x * canvasWidth, lastPoint.y * canvasHeight);
                 }
                 ctx.stroke();
             } else if (anno.type === 'text') {
