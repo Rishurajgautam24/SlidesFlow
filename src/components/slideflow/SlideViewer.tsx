@@ -277,7 +277,6 @@ export default function SlideViewer() {
         }
     };
 
-_
     const handleMouseMove = (e: React.MouseEvent) => {
       const laser = laserRef.current;
       if (activeTool === 'laser' && laser) {
