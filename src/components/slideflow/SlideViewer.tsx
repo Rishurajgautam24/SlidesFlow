@@ -202,12 +202,13 @@ export default function SlideViewer() {
     };
 
     return (
-        <div ref={containerRef} className="flex-1 flex items-center justify-center p-4 overflow-hidden" onMouseMove={handleMouseMove}>
+        <div ref={containerRef} className="flex-1 flex items-center justify-center p-4 overflow-hidden">
             {isLoading ? (
                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
             ) : (
                 <div className="relative shadow-lg"
                      style={{ cursor: activeTool === 'cursor' || activeTool === 'laser' ? 'default' : (activeTool === 'eraser' ? 'cell' : 'crosshair') }}
+                     onMouseMove={handleMouseMove}
                 >
                     <canvas ref={pdfCanvasRef} />
                     <canvas 
@@ -227,7 +228,7 @@ export default function SlideViewer() {
                     activeTool === 'laser' ? 'opacity-100' : 'opacity-0'
                 )} 
             />
-            <div className={cn("absolute inset-0", {
+            <div className={cn("absolute inset-0 pointer-events-none", {
                 'cursor-none': activeTool === 'laser',
             })}></div>
         </div>
