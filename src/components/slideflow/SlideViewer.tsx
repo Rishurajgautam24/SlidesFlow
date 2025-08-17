@@ -207,14 +207,17 @@ export default function SlideViewer() {
                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
             ) : (
                 <div className="relative shadow-lg"
-                     onMouseDown={startDrawing}
-                     onMouseUp={stopDrawing}
-                     onMouseLeave={stopDrawing}
-                     onClick={handleMouseClick}
                      style={{ cursor: activeTool === 'cursor' || activeTool === 'laser' ? 'default' : (activeTool === 'eraser' ? 'cell' : 'crosshair') }}
                 >
                     <canvas ref={pdfCanvasRef} />
-                    <canvas ref={annotationCanvasRef} className="absolute top-0 left-0" />
+                    <canvas 
+                        ref={annotationCanvasRef} 
+                        className="absolute top-0 left-0"
+                        onMouseDown={startDrawing}
+                        onMouseUp={stopDrawing}
+                        onMouseLeave={stopDrawing}
+                        onClick={handleMouseClick}
+                    />
                 </div>
             )}
             <div 
