@@ -204,13 +204,24 @@ export default function SlideViewer() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [goToNextPage, goToPrevPage]);
     
-    const getCoords = (e: React.MouseEvent): PathPoint | null => {
+    const getCoords = (e: React.MouseEvent | React.TouchEvent<HTMLDivElement>): PathPoint | null => {
         const canvas = annotationCanvasRef.current;
         if (!canvas) return null;
         const rect = canvas.getBoundingClientRect();
+
+        let clientX, clientY;
+        if ('touches' in e) {
+            if (e.touches.length === 0) return null;
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
         return {
-            x: (e.clientX - rect.left) / rect.width,
-            y: (e.clientY - rect.top) / rect.height,
+            x: (clientX - rect.left) / rect.width,
+            y: (clientY - rect.top) / rect.height,
         };
     };
 
@@ -218,8 +229,11 @@ export default function SlideViewer() {
       return ['pen', 'highlighter', 'rectangle', 'circle', 'arrow'].includes(tool);
     }
 
-    const startDrawing = (e: React.MouseEvent) => {
+    const startDrawing = (e: React.MouseEvent | React.TouchEvent<HTMLDivElement>) => {
         if (!isDrawingTool(activeTool)) return;
+        if ('touches' in e) {
+            e.preventDefault();
+        }
         const coords = getCoords(e);
         if (!coords) return;
         
@@ -251,8 +265,11 @@ export default function SlideViewer() {
         addAnnotation(currentPage, newAnnotation);
     };
 
-    const draw = (e: React.MouseEvent) => {
+    const draw = (e: React.MouseEvent | React.TouchEvent<HTMLDivElement>) => {
         if (!isDrawing) return;
+        if ('touches' in e) {
+            e.preventDefault();
+        }
         const coords = getCoords(e);
         if (!coords) return;
         
@@ -319,13 +336,17 @@ export default function SlideViewer() {
             {isLoading ? (
                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
             ) : (
-                <div className="relative shadow-lg"
+                <div className="relative shadow-lg touch-none"
                      style={{ cursor: getCursor() }}
                      onMouseMove={handleMouseMove}
                      onMouseDown={startDrawing}
                      onMouseUp={stopDrawing}
                      onMouseLeave={stopDrawing}
                      onClick={handleMouseClick}
+                     onTouchStart={startDrawing}
+                     onTouchMove={draw}
+                     onTouchEnd={stopDrawing}
+                     onTouchCancel={stopDrawing}
                 >
                     <canvas ref={pdfCanvasRef} />
                     <canvas 
