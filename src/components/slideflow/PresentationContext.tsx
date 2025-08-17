@@ -3,20 +3,40 @@
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
-export type Tool = 'cursor' | 'pen' | 'highlighter' | 'eraser' | 'laser';
+export type Tool = 'cursor' | 'pen' | 'highlighter' | 'eraser' | 'laser' | 'text' | 'rectangle' | 'circle' | 'arrow';
 
 export interface PathPoint {
   x: number;
   y: number;
 }
-export interface Annotation {
+export interface BaseAnnotation {
   id: string;
-  type: 'path';
-  points: PathPoint[];
   color: string;
   width: number;
+}
+
+export interface PathAnnotation extends BaseAnnotation {
+  type: 'path';
+  points: PathPoint[];
   isHighlighter?: boolean;
 }
+
+export interface TextAnnotation extends BaseAnnotation {
+  type: 'text';
+  point: PathPoint;
+  text: string;
+  size: number;
+}
+
+export interface ShapeAnnotation extends BaseAnnotation {
+  type: 'shape';
+  shape: 'rectangle' | 'circle' | 'arrow';
+  start: PathPoint;
+  end: PathPoint;
+}
+
+export type Annotation = PathAnnotation | TextAnnotation | ShapeAnnotation;
+
 
 interface PresentationState {
   pdf: PDFDocumentProxy;
@@ -108,9 +128,20 @@ export const PresentationProvider = ({ pdf, children }: { pdf: PDFDocumentProxy,
     setAnnotations(prev => {
       const pageAnnotations = prev[page] || [];
       if (pageAnnotations.length === 0) return prev;
-      const lastAnnotation = pageAnnotations[pageAnnotations.length - 1];
-      const updatedPoints = [...lastAnnotation.points, point];
-      const updatedAnnotation = { ...lastAnnotation, points: updatedPoints };
+      
+      const last = pageAnnotations[pageAnnotations.length - 1];
+      
+      let updatedAnnotation: Annotation;
+
+      if (last.type === 'path') {
+        const updatedPoints = [...last.points, point];
+        updatedAnnotation = { ...last, points: updatedPoints };
+      } else if (last.type === 'shape') {
+        updatedAnnotation = { ...last, end: point };
+      } else {
+        return prev;
+      }
+      
       return {
         ...prev,
         [page]: [...pageAnnotations.slice(0, -1), updatedAnnotation],
