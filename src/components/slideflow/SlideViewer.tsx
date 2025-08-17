@@ -90,11 +90,23 @@ export default function SlideViewer() {
 
                 if (anno.points.length > 0) {
                     ctx.moveTo(anno.points[0].x * canvasWidth, anno.points[0].y * canvasHeight);
-                    for (let i = 1; i < anno.points.length; i++) {
-                        const p = anno.points[i];
-                        ctx.lineTo(p.x * canvasWidth, p.y * canvasHeight);
-                    }
                 }
+
+                for (let i = 1; i < anno.points.length - 1; i++) {
+                    const p1 = anno.points[i];
+                    const p2 = anno.points[i + 1];
+                    const midPoint = {
+                        x: (p1.x + p2.x) / 2,
+                        y: (p1.y + p2.y) / 2
+                    };
+                    ctx.quadraticCurveTo(p1.x * canvasWidth, p1.y * canvasHeight, midPoint.x * canvasWidth, midPoint.y * canvasHeight);
+                }
+                
+                if (anno.points.length > 1) {
+                  const lastPoint = anno.points[anno.points.length - 1];
+                  ctx.lineTo(lastPoint.x * canvasWidth, lastPoint.y * canvasHeight);
+                }
+
                 ctx.stroke();
             } else if (anno.type === 'text') {
                 ctx.font = `${anno.size * canvasHeight}px Inter`;
